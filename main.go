@@ -5,19 +5,26 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"sync"
 )
 
-var visitors int
+var visitors struct {
+	sync.Mutex
+	n int
+}
 
 func handleHi(w http.ResponseWriter, r *http.Request) {
 	if match, _ := regexp.MatchString(`^\w*$`, r.FormValue("color")); !match {
 		http.Error(w, "Optional color is invalid", http.StatusBadRequest)
 		return
 	}
-	visitors++
+	visitors.Lock()
+	visitors.n++
+	yourVisitNumber := visitors.n
+	visitors.Unlock()
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte("<h1 style='color: " + r.FormValue("color") +
-		"'>Welcome!</h1>You are visitor number " + fmt.Sprint(visitors) + "!"))
+		"'>Welcome!</h1>You are visitor number " + fmt.Sprint(yourVisitNumber) + "!"))
 }
 
 func main() {
