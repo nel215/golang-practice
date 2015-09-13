@@ -10,6 +10,15 @@ import (
 	"testing"
 )
 
+func BenchmarkHi(b *testing.B) {
+	b.ReportAllocs()
+	r := req(b, "GET / HTTP/1.0\r\n\r\n")
+	for i := 0; i < b.N; i++ {
+		rw := httptest.NewRecorder()
+		handleHi(rw, r)
+	}
+}
+
 func TestHandleHi_TestServer_Parallel(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(handleHi))
 	defer ts.Close()
@@ -46,7 +55,7 @@ func TestHandleHi_Recorder(t *testing.T) {
 	}
 }
 
-func req(t *testing.T, v string) *http.Request {
+func req(t testing.TB, v string) *http.Request {
 	req, err := http.ReadRequest(bufio.NewReader(strings.NewReader(v)))
 	if err != nil {
 		t.Fatal(err)
