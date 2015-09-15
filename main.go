@@ -13,8 +13,10 @@ var visitors struct {
 	n int
 }
 
+var colorRx = regexp.MustCompile(`\w*$`)
+
 func handleHi(w http.ResponseWriter, r *http.Request) {
-	if match, _ := regexp.MatchString(`^\w*$`, r.FormValue("color")); !match {
+	if !colorRx.MatchString(r.FormValue("color")) {
 		http.Error(w, "Optional color is invalid", http.StatusBadRequest)
 		return
 	}
