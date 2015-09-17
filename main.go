@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,6 +16,12 @@ var visitors struct {
 
 var colorRx = regexp.MustCompile(`\w*$`)
 
+var bufPool = sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
+
 func handleHi(w http.ResponseWriter, r *http.Request) {
 	if !colorRx.MatchString(r.FormValue("color")) {
 		http.Error(w, "Optional color is invalid", http.StatusBadRequest)
@@ -24,9 +31,16 @@ func handleHi(w http.ResponseWriter, r *http.Request) {
 	visitors.n++
 	yourVisitNumber := visitors.n
 	visitors.Unlock()
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte("<h1 style='color: " + r.FormValue("color") +
-		"'>Welcome!</h1>You are visitor number " + fmt.Sprint(yourVisitNumber) + "!"))
+	buf := bufPool.Get().(*bytes.Buffer)
+	defer bufPool.Put(buf)
+	buf.Reset()
+	buf.WriteString("<h1 style='color: ")
+	buf.WriteString(r.FormValue("color"))
+	buf.WriteString("'>Welcome!</h1>You are visitor number ")
+	buf.WriteString(fmt.Sprint(yourVisitNumber))
+	buf.WriteString("!")
+	//w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(buf.Bytes())
 }
 
 func main() {
